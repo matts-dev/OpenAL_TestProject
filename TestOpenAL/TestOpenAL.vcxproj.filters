@@ -21,10 +21,11 @@
     <ClCompile Include="src\main_test_openal_api.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="src\AudioFile_Helpers.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
+    <ClCompile Include="src\no_gpl_dependency\dr_wav_impl.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\no_gpl_dependency\main_nogpl.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

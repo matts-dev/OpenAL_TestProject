@@ -128,9 +128,8 @@
   <ItemGroup>
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\main_test_openal_api.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="src\AudioFile_Helpers.h" />
+    <ClCompile Include="src\no_gpl_dependency\dr_wav_impl.c" />
+    <ClCompile Include="src\no_gpl_dependency\main_nogpl.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

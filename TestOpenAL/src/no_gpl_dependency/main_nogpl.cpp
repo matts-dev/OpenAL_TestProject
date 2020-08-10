@@ -1,8 +1,9 @@
 
 #include<iostream>
 #include<AL/al.h>
-#include <AL/alc.h>
-#include<AudioFile/AudioFile.h>
+#include<AL/alc.h>
+#include<dr_lib/dr_wav.h>
+#include <vector>
 
 //OpenAL error checking
 #define OpenAL_ErrorCheck(message)\
@@ -18,8 +19,8 @@
 FUNCTION_CALL;\
 OpenAL_ErrorCheck(FUNCTION_CALL)
 
-#define GPL_MAIN 1 
-#if GPL_MAIN
+#define ENABLE_NO_GPL_MAIN 0
+#if ENABLE_NO_GPL_MAIN
 int main()
 {
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -66,42 +67,58 @@ int main()
 	// Create buffers that hold our sound data; these are shared between contexts and ar defined at a device level
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-	AudioFile<float> monoSoundFile;
-	if (!monoSoundFile.load("sounds/TestSound_Mono.wav"))
+	struct ReadWavData
 	{
-		std::cerr << "failed to load the test mono sound file" << std::endl;
-		return -1;
-	}
-	std::vector<uint8_t> monoPCMDataBytes;
-	monoSoundFile.writePCMToBuffer(monoPCMDataBytes); //remember, we added this function to the AudioFile library
-	auto convertFileToOpenALFormat = [](const AudioFile<float>& audioFile) {
-		int bitDepth = audioFile.getBitDepth();
-		if (bitDepth == 16)
-			return audioFile.isStereo() ? AL_FORMAT_STEREO16 : AL_FORMAT_MONO16;
-		else if (bitDepth == 8)
-			return audioFile.isStereo() ? AL_FORMAT_STEREO8 : AL_FORMAT_MONO8;
-		else
-			return -1; // this shouldn't happen!
+		unsigned int channels = 0;
+		unsigned int sampleRate = 0;
+		drwav_uint64 totalPCMFrameCount = 0;
+		std::vector<uint16_t> pcmData;
+		drwav_uint64 getTotalSamples() { return totalPCMFrameCount * channels; }
 	};
+	ReadWavData monoData;
+	{
+		drwav_int16* pSampleData = drwav_open_file_and_read_pcm_frames_s16("sounds/TestSound_Mono.wav", &monoData.channels, &monoData.sampleRate, &monoData.totalPCMFrameCount, nullptr);
+		if (pSampleData == NULL) {
+			std::cerr << "failed to load audio file" << std::endl;
+			return -1;
+		}
+		if (monoData.getTotalSamples() > drwav_uint64(std::numeric_limits<size_t>::max()))
+		{
+			std::cerr << "too much data in file for 32bit addressed vector" << std::endl;
+			return -1;
+		}
+		monoData.pcmData.resize(size_t(monoData.getTotalSamples()));
+		std::memcpy(monoData.pcmData.data(), pSampleData, monoData.pcmData.size() * /*twobytes_in_s15*/2);
+		drwav_free(pSampleData, nullptr);
+	}
+
 	ALuint monoSoundBuffer;
 	alec(alGenBuffers(1, &monoSoundBuffer));
-	alec(alBufferData(monoSoundBuffer, convertFileToOpenALFormat(monoSoundFile), monoPCMDataBytes.data(), monoPCMDataBytes.size(), monoSoundFile.getSampleRate()));
+	alec(alBufferData(monoSoundBuffer, monoData.channels > 1 ? AL_FORMAT_STEREO16 : AL_FORMAT_MONO16, monoData.pcmData.data(), monoData.pcmData.size() * 2 /*two bytes per sample*/, monoData.sampleRate));
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// load a stereo file into a buffer
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	AudioFile<float> stereoSoundFile;
-	if (!stereoSoundFile.load("sounds/TestSound.wav"))
+	ReadWavData stereoData;
 	{
-		std::cerr << "failed to load the test stereo sound file" << std::endl;
-		return -1;
+		drwav_int16* pSampleData = drwav_open_file_and_read_pcm_frames_s16("sounds/TestSound.wav", &stereoData.channels, &stereoData.sampleRate, &stereoData.totalPCMFrameCount, nullptr);
+		if (pSampleData == NULL) {
+			std::cerr << "failed to load audio file" << std::endl;
+			return -1;
+		}
+		if (stereoData.getTotalSamples() > drwav_uint64(std::numeric_limits<size_t>::max()))
+		{
+			std::cerr << "too much data in file for 32bit addressed vector" << std::endl;
+			return -1;
+		}
+		stereoData.pcmData.resize(size_t(stereoData.getTotalSamples()));
+		std::memcpy(stereoData.pcmData.data(), pSampleData, stereoData.pcmData.size() * /*twobytes_in_s15*/2);
+		drwav_free(pSampleData, nullptr);
 	}
-	std::vector<uint8_t> stereoPCMDataBytes;
-	stereoSoundFile.writePCMToBuffer(stereoPCMDataBytes); //remember, we added this function to the AudioFile library
 
 	ALuint stereoSoundBuffer;
 	alec(alGenBuffers(1, &stereoSoundBuffer));
-	alec(alBufferData(stereoSoundBuffer, convertFileToOpenALFormat(stereoSoundFile), stereoPCMDataBytes.data(), stereoPCMDataBytes.size(), stereoSoundFile.getSampleRate()));
+	alec(alBufferData(stereoSoundBuffer, stereoData.channels > 1 ? AL_FORMAT_STEREO16 : AL_FORMAT_MONO16, stereoData.pcmData.data(), stereoData.pcmData.size() * 2 /*two bytes per sample*/, stereoData.sampleRate));
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// create a sound source that play's our mono sound (from the sound buffer)
@@ -164,6 +181,7 @@ int main()
 	alec(alcMakeContextCurrent(nullptr));
 	alec(alcDestroyContext(context));
 	alec(alcCloseDevice(device));
-	
+
 }
-#endif //GPL MAIN
+
+#endif // ENABLE_NO_GPL_MAIN
