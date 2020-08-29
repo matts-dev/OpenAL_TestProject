@@ -19,7 +19,7 @@
 FUNCTION_CALL;\
 OpenAL_ErrorCheck(FUNCTION_CALL)
 
-#define ENABLE_NO_GPL_MAIN 0
+#define ENABLE_NO_GPL_MAIN 1
 #if ENABLE_NO_GPL_MAIN
 int main()
 {
@@ -34,13 +34,13 @@ int main()
 		return -1;
 	}
 	std::cout << "OpenAL Device: " << alcGetString(device, ALC_DEVICE_SPECIFIER) << std::endl;
-	OpenAL_ErrorCheck(device);
+	//OpenAL_ErrorCheck(device);
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// Create an OpenAL audio context from the device
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	ALCcontext* context = alcCreateContext(device, /*attrlist*/ nullptr);
-	OpenAL_ErrorCheck(context);
+	//OpenAL_ErrorCheck(context);
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// Activate this context so that OpenAL state modifications are applied to the context
@@ -50,7 +50,7 @@ int main()
 		std::cerr << "failed to make the OpenAL context the current context" << std::endl;
 		return -1;
 	}
-	OpenAL_ErrorCheck("Make context current");
+	//OpenAL_ErrorCheck("Make context current");
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// Create a listener in 3d space (ie the player); (there always exists as listener, you just configure data on it)
@@ -80,15 +80,17 @@ int main()
 		drwav_int16* pSampleData = drwav_open_file_and_read_pcm_frames_s16("sounds/TestSound_Mono.wav", &monoData.channels, &monoData.sampleRate, &monoData.totalPCMFrameCount, nullptr);
 		if (pSampleData == NULL) {
 			std::cerr << "failed to load audio file" << std::endl;
+			drwav_free(pSampleData, nullptr); //todo use raii to clean this up
 			return -1;
 		}
 		if (monoData.getTotalSamples() > drwav_uint64(std::numeric_limits<size_t>::max()))
 		{
 			std::cerr << "too much data in file for 32bit addressed vector" << std::endl;
-			return -1;
+			drwav_free(pSampleData, nullptr);
+			return -1; 
 		}
 		monoData.pcmData.resize(size_t(monoData.getTotalSamples()));
-		std::memcpy(monoData.pcmData.data(), pSampleData, monoData.pcmData.size() * /*twobytes_in_s15*/2);
+		std::memcpy(monoData.pcmData.data(), pSampleData, monoData.pcmData.size() * /*twobytes_in_s16*/2);
 		drwav_free(pSampleData, nullptr);
 	}
 
@@ -121,7 +123,7 @@ int main()
 	alec(alBufferData(stereoSoundBuffer, stereoData.channels > 1 ? AL_FORMAT_STEREO16 : AL_FORMAT_MONO16, stereoData.pcmData.data(), stereoData.pcmData.size() * 2 /*two bytes per sample*/, stereoData.sampleRate));
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	// create a sound source that play's our mono sound (from the sound buffer)
+	// create a sound source that plays our mono sound (from the sound buffer)
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	ALuint monoSource;
 	alec(alGenSources(1, &monoSource));
@@ -178,9 +180,9 @@ int main()
 	alec(alDeleteSources(1, &stereoSource));
 	alec(alDeleteBuffers(1, &monoSoundBuffer));
 	alec(alDeleteBuffers(1, &stereoSoundBuffer));
-	alec(alcMakeContextCurrent(nullptr));
-	alec(alcDestroyContext(context));
-	alec(alcCloseDevice(device));
+	alcMakeContextCurrent(nullptr);
+	alcDestroyContext(context);
+	alcCloseDevice(device);
 
 }
 

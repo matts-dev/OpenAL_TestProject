@@ -18,7 +18,7 @@
 FUNCTION_CALL;\
 OpenAL_ErrorCheck(FUNCTION_CALL)
 
-#define GPL_MAIN 1 
+#define GPL_MAIN 0
 #if GPL_MAIN
 int main()
 {
@@ -33,13 +33,13 @@ int main()
 		return -1;
 	}
 	std::cout << "OpenAL Device: " << alcGetString(device, ALC_DEVICE_SPECIFIER) << std::endl;
-	OpenAL_ErrorCheck(device);
+	//OpenAL_ErrorCheck(device);
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// Create an OpenAL audio context from the device
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	ALCcontext* context = alcCreateContext(device, /*attrlist*/ nullptr);
-	OpenAL_ErrorCheck(context);
+	//OpenAL_ErrorCheck(context);
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// Activate this context so that OpenAL state modifications are applied to the context
@@ -49,7 +49,7 @@ int main()
 		std::cerr << "failed to make the OpenAL context the current context" << std::endl;
 		return -1;
 	}
-	OpenAL_ErrorCheck("Make context current");
+	//OpenAL_ErrorCheck("Make context current");
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// Create a listener in 3d space (ie the player); (there always exists as listener, you just configure data on it)
@@ -161,9 +161,9 @@ int main()
 	alec(alDeleteSources(1, &stereoSource));
 	alec(alDeleteBuffers(1, &monoSoundBuffer));
 	alec(alDeleteBuffers(1, &stereoSoundBuffer));
-	alec(alcMakeContextCurrent(nullptr));
-	alec(alcDestroyContext(context));
-	alec(alcCloseDevice(device));
+	alcMakeContextCurrent(nullptr);
+	alcDestroyContext(context);
+	alcCloseDevice(device);
 	
 }
 #endif //GPL MAIN
